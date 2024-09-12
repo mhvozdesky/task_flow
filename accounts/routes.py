@@ -2,6 +2,7 @@ import secrets
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.future import select
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -17,6 +18,8 @@ router = APIRouter()
 # Initialize the context for hashing passwords
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
 
 def get_password_hash(password):
     return pwd_context.hash(password)
@@ -24,6 +27,16 @@ def get_password_hash(password):
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    result = db.execute(select(Token).where(Token.token == token))
+    db_token = result.scalars().first()
+
+    if not db_token:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    return db_token.user
 
 
 @router.post("/register", response_model=TokenOut)
@@ -89,3 +102,23 @@ async def login(login_data: LoginData, db: Session = Depends(get_db)):
     db.commit()
 
     return {"token": new_token.token}
+
+
+@router.post("/logout")
+def logout(current_user: User = Depends(get_current_user),
+            db: Session = Depends(get_db),
+            bearer_token: str = Depends(oauth2_scheme)
+           ):
+    statement = select(Token).where(
+        Token.user_id == current_user.id,
+        Token.token == bearer_token
+    )
+    token = db.execute(statement).scalars().first()
+
+    if not token:
+        raise HTTPException(status_code=404, detail="Token not found")
+
+    db.delete(token)
+    db.commit()
+
+    return {"msg": "Logout successful"}
