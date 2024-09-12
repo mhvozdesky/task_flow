@@ -82,3 +82,8 @@ class TokenOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class LoginData(BaseModel):
+    email: EmailStr
+    password: str
