@@ -3,8 +3,8 @@ from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.future import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from passlib.context import CryptContext
+from sqlalchemy.orm import Session
 
 from .models import User, Role, UserRole, Token
 from .schemas import UserCreate, TokenOut, LoginData
@@ -27,8 +27,9 @@ def verify_password(plain_password, hashed_password):
 
 
 @router.post("/register", response_model=TokenOut)
-async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).filter(User.email == user.email))
+async def register(user: UserCreate, db: Session = Depends(get_db)):
+    statement = select(User).where(User.email == user.email)
+    result = db.execute(statement)
     existing_user = result.scalars().first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -43,7 +44,7 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
         last_name=user.last_name
     )
 
-    result = await db.execute(select(Role).filter(Role.name == RoleName.USER))
+    result = db.execute(select(Role).filter(Role.name == RoleName.USER))
     default_role = result.scalars().first()
     if not default_role:
         default_role = Role(name=RoleName.USER)
@@ -61,15 +62,15 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
     db.add(new_user)
     db.add(user_role)
     db.add(new_token)
-    await db.commit()
-    await db.refresh(new_token)
+    db.commit()
+    db.refresh(new_token)
 
     return new_token
 
 
 @router.post("/login")
-async def login(login_data: LoginData, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).filter(User.email == login_data.email))
+async def login(login_data: LoginData, db: Session = Depends(get_db)):
+    result = db.execute(select(User).filter(User.email == login_data.email))
     user = result.scalars().first()
 
     if not user:
@@ -85,6 +86,6 @@ async def login(login_data: LoginData, db: AsyncSession = Depends(get_db)):
     )
 
     db.add(new_token)
-    await db.commit()
+    db.commit()
 
     return {"token": new_token.token}
