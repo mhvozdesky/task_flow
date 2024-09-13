@@ -18,6 +18,7 @@ class User(Base):
     super_user = Column(Boolean, default=False)
 
     roles = relationship("UserRole", back_populates="user")
+    tasks_responsible = relationship("Task", back_populates="responsible")
 
 
 class Role(Base):

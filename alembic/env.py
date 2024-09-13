@@ -13,6 +13,7 @@ from accounts.models import (
     RolePermission,
     Token
 )
+from taskboard.models import Task, TaskExecutors
 from settings import (
     POSTGRES_USER,
     POSTGRES_PASSWORD,
