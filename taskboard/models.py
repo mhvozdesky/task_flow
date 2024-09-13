@@ -1,9 +1,10 @@
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, Enum, \
-    UniqueConstraint
+    UniqueConstraint, event, inspect
 from sqlalchemy.orm import relationship
 from database import Base
 from accounts.models import User
 from common.constants import TaskStatus, TaskPriority
+from email_notification.email_sender import send_email
 
 
 class Task(Base):
@@ -30,3 +31,19 @@ class TaskExecutors(Base):
     __table_args__ = (
         UniqueConstraint('task_id', 'user_id', name='_task_user_uc'),
     )
+
+
+def after_update_listener(mapper, connection, target):
+    state = inspect(target)
+    history = state.attrs.status.history
+    if history.has_changes():
+        old_status = history.deleted[0] if history.deleted else None
+        new_status = history.added[0] if history.added else None
+        if new_status and new_status != old_status:
+            if target.responsible:
+                subject = f"Статус задачі '{target.title}' змінився на {target.status.value}"
+                body = f"Ваша задача '{target.title}' зараз має статус: {target.status.value}."
+
+                send_email(target.responsible.email, subject, body)
+
+event.listen(Task, 'after_update', after_update_listener)

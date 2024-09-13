@@ -11,7 +11,7 @@ from settings import (
 
 
 SQLALCHEMY_DATABASE_URL = f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{DB_HOST}:{DB_PORT}/{POSTGRES_DB}"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=True)
+engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=False)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
