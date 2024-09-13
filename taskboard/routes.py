@@ -3,6 +3,10 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from starlette import status
 
+from accounts.routes import get_current_user
+from common.constants import PermissionName
+from dependencies import permission_required
+from security.permissions import has_permission
 from .schemas import TaskCreate, TaskUpdate, TaskOut
 from .models import Task, TaskExecutors
 from accounts.models import User
@@ -51,7 +55,7 @@ def assign_executors(task: Task, executor_ids: Optional[List[int]], db: Session)
         db.commit()
 
 
-@router.get("/tasks", response_model=List[TaskOut])
+@router.get("/tasks", response_model=List[TaskOut], dependencies=[Depends(get_current_user)])
 def get_all_tasks(db: Session = Depends(get_db)):
     tasks = db.execute(select(Task)).scalars().all()
 
@@ -63,8 +67,12 @@ def get_all_tasks(db: Session = Depends(get_db)):
     return tasks_with_executors
 
 
-@router.post("/tasks", response_model=TaskOut)
-def create_task(task: TaskCreate, db: Session = Depends(get_db)):
+@router.post("/tasks", response_model=TaskOut, dependencies=[Depends(permission_required(PermissionName.CREATE_TASK))])
+def create_task(
+        task: TaskCreate,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
     validate_responsible_user(task.responsible_id, db)
 
     new_task = Task(
@@ -85,7 +93,7 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     return new_task
 
 
-@router.get("/tasks/{task_id}", response_model=TaskOut)
+@router.get("/tasks/{task_id}", response_model=TaskOut, dependencies=[Depends(get_current_user)])
 def get_task(task_id: int, db: Session = Depends(get_db)):
     task = get_task_or_404(task_id, db)
     executor_ids = [executor.id for executor in task.executors]
@@ -93,7 +101,7 @@ def get_task(task_id: int, db: Session = Depends(get_db)):
     return task
 
 
-@router.put("/tasks/{task_id}", response_model=TaskOut)
+@router.put("/tasks/{task_id}", response_model=TaskOut, dependencies=[Depends(permission_required(PermissionName.UPDATE_TASK))])
 def update_task(task_id: int, task_update: TaskUpdate,
                 db: Session = Depends(get_db)):
     task = get_task_or_404(task_id, db)
@@ -118,7 +126,7 @@ def update_task(task_id: int, task_update: TaskUpdate,
     return task
 
 
-@router.delete("/tasks/{task_id}")
+@router.delete("/tasks/{task_id}", dependencies=[Depends(permission_required(PermissionName.DELETE_TASK))])
 def delete_task(task_id: int, db: Session = Depends(get_db)):
     task = get_task_or_404(task_id, db)
     db.execute(delete(TaskExecutors).where(TaskExecutors.task_id == task_id))
