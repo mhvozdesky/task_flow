@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, ForeignKey, Integer, DateTime, Boolean, E
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
-from common.constants import RoleName
+from common.constants import RoleName, PermissionName
 from database import Base
 
 
@@ -35,7 +35,7 @@ class Permission(Base):
     __tablename__ = "permissions"
 
     id = Column(Integer, primary_key=True, index=True)
-    access_level = Column(String, nullable=False)
+    access_level = Column(Enum(PermissionName), unique=True, nullable=False)
 
     roles = relationship("RolePermission", back_populates="permission")
 

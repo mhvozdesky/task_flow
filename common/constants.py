@@ -17,3 +17,10 @@ class TaskPriority(str, Enum):
     LOW = "Low"
     MEDIUM = "Medium"
     HIGH = "High"
+
+
+class PermissionName(str, Enum):
+    CREATE_TASK = "create_task"
+    UPDATE_TASK = "update_task"
+    DELETE_TASK = "delete_task"
+    READ_TASK = "read_task"
