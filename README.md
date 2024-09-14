@@ -83,7 +83,7 @@ alembic upgrade head
 ### 6. Run the Server
 Run the FastAPI server:
 ```bash
-uvicorn task_flow_backend.main:app --reload
+uvicorn main:app --reload
 ```
 
 ### 7. Test the Project
