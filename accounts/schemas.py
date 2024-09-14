@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 
@@ -28,8 +28,7 @@ class UserOut(BaseModel):
     super_user: bool
     roles: List[str] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RoleBase(BaseModel):
@@ -43,8 +42,7 @@ class RoleCreate(RoleBase):
 class RoleOut(RoleBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PermissionBase(BaseModel):
@@ -58,16 +56,14 @@ class PermissionCreate(PermissionBase):
 class PermissionOut(PermissionBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserRoleOut(BaseModel):
     user_id: int
     role_id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TokenBase(BaseModel):
@@ -80,8 +76,7 @@ class TokenCreate(TokenBase):
 class TokenOut(BaseModel):
     token: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LoginData(BaseModel):
