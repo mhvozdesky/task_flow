@@ -1,3 +1,4 @@
+import logging
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
@@ -8,6 +9,9 @@ from accounts.routes import router as accounts_router
 from scripts.initialize_permissions import initialize_permissions
 from taskboard.routes import router as tasks_router
 from database import get_db
+
+
+logging.getLogger('passlib').setLevel(logging.ERROR)
 
 
 @asynccontextmanager
