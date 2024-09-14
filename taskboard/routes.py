@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi.responses import JSONResponse
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from starlette import status
@@ -12,6 +13,8 @@ from .models import Task, TaskExecutors
 from accounts.models import User
 from database import get_db
 from typing import List, Set, Optional
+
+from pagination import get_paginator, Paginator
 
 router = APIRouter()
 
@@ -55,15 +58,29 @@ def assign_executors(task: Task, executor_ids: Optional[List[int]], db: Session)
         db.commit()
 
 
-@router.get("/tasks", response_model=List[TaskOut], dependencies=[Depends(get_current_user)])
-def get_all_tasks(db: Session = Depends(get_db)):
-    tasks = db.execute(select(Task)).scalars().all()
+@router.get("/tasks", response_model=List[TaskOut])
+def get_all_tasks(
+    response: Response,
+    paginator: Paginator = Depends(get_paginator),
+    order_by: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1)
+):
+    query = select(Task)
+    tasks, total_tasks = paginator.paginate(query, order_by=order_by, page=page, page_size=page_size)
+    total_pages = (total_tasks + page_size - 1) // page_size
 
     tasks_with_executors = []
     for task in tasks:
         executor_ids = [executor.id for executor in task.executors]
         task.executor_ids = executor_ids
-        tasks_with_executors.append(task)
+        tasks_with_executors.append(TaskOut.model_validate(task))
+
+    response.headers["X-Total-Count"] = str(total_tasks)
+    response.headers["X-Total-Pages"] = str(total_pages)
+    response.headers["X-Current-Page"] = str(page)
+    response.headers["X-Page-Size"] = str(page_size)
+
     return tasks_with_executors
 
 
